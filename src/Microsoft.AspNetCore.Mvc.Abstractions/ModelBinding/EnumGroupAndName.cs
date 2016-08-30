@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using Microsoft.Extensions.Internal;
 
 namespace Microsoft.AspNetCore.Mvc.ModelBinding
 {
@@ -13,7 +14,7 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
         private Func<string> _nameFunc;
 
         /// <summary>
-        /// Initializes a new instance of the EnumGroupAndName structure.
+        /// Initializes a new instance of the EnumGroupAndName structure. Should not be used if localization is in use.
         /// </summary>
         /// <param name="group">The group name.</param>
         /// <param name="name">The name.</param>
@@ -68,6 +69,29 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
             {
                 return _nameFunc();
             }
+        }
+
+        // Equals and GetHashCode must be overloaded to accomidate the _nameFunc
+        public override bool Equals(object obj)
+        {
+            if (!(obj is EnumGroupAndName))
+            {
+                return false;
+            }
+
+            var second = (EnumGroupAndName)obj;
+
+            return string.Equals(Group, second.Group) && string.Equals(Name, second.Name);
+        }
+
+        public override int GetHashCode()
+        {
+            var hashcode = HashCodeCombiner.Start();
+
+            hashcode.Add(Group);
+            hashcode.Add(Name);
+
+            return hashcode;
         }
     }
 }

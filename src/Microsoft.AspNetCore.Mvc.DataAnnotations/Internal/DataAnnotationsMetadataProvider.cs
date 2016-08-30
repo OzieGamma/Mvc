@@ -153,7 +153,7 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
                 // Dictionary does not guarantee order will be preserved.
                 var groupedDisplayNamesAndValues = new List<KeyValuePair<EnumGroupAndName, string>>();
                 var namesAndValues = new Dictionary<string, string>();
-                IStringLocalizer enumLocalizer = _stringLocalizerFactory?.Create(underlyingType);
+                var enumLocalizer = _stringLocalizerFactory?.Create(underlyingType);
                 foreach (var name in Enum.GetNames(underlyingType))
                 {
                     var field = underlyingType.GetField(name);
@@ -299,14 +299,11 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
             {
                 // Note [Display(Name = "")] is allowed.
                 var name = display.GetName();
-                if (name != null)
+                if (localizer != null && !string.IsNullOrEmpty(name) && display.ResourceType == null)
                 {
-                    if (localizer != null && name != string.Empty && display.ResourceType == null)
-                    {
-                        name = localizer[name];
-                    }
-                    return name;
+                    name = localizer[name];
                 }
+                return name ?? field.Name;
             }
 
             return field.Name;

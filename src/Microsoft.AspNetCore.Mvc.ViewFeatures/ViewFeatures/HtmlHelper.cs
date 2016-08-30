@@ -522,6 +522,24 @@ namespace Microsoft.AspNetCore.Mvc.ViewFeatures
             string templateName,
             object additionalViewData)
         {
+            if (modelExplorer.Metadata.IsEnum && modelExplorer.Model != null)
+            {
+                var value = (modelExplorer.Model as Enum).ToString("d");
+
+                var enumGrouped = modelExplorer.Metadata.EnumGroupedDisplayNamesAndValues;
+                if (enumGrouped != null &&
+                    enumGrouped.Count() > 0)
+                {
+                    foreach (var kvp in enumGrouped)
+                    {
+                        if (kvp.Value == value)
+                        {
+                            modelExplorer = modelExplorer.GetExplorerForModel(kvp.Key.Name);
+                        }
+                    }
+                }
+            }
+
             var templateBuilder = new TemplateBuilder(
                 _viewEngine,
                 _bufferScope,

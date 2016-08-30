@@ -7,6 +7,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc.TestCommon;
 using Microsoft.AspNetCore.Mvc.ViewEngines;
+using Microsoft.Extensions.Localization;
 using Moq;
 using Xunit;
 
@@ -228,23 +229,35 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
         public void DisplayFor_EnumProperty_IStringLocalizedValue()
         {
             // Arrange
-            var model = new SomeModel
+            var model = new StatusModel
             {
-                SomeProperty = "ModelValue",
                 Status = Status.Pass
             };
             var view = new Mock<IView>();
             view.Setup(v => v.RenderAsync(It.IsAny<ViewContext>()))
-                .Callback((ViewContext v) => v.Writer.WriteAsync(v.ViewData.TemplateInfo.HtmlFieldPrefix))
+                .Callback((ViewContext v) => v.Writer.WriteAsync(v.ViewData.TemplateInfo.FormattedModelValue.ToString()))
                 .Returns(Task.FromResult(0));
             var viewEngine = new Mock<ICompositeViewEngine>(MockBehavior.Strict);
             viewEngine
                 .Setup(v => v.GetView(/*executingFilePath*/ null, It.IsAny<string>(), /*isMainPage*/ false))
                 .Returns(ViewEngineResult.NotFound(string.Empty, Enumerable.Empty<string>()));
             viewEngine
-                .Setup(v => v.FindView(It.IsAny<ActionContext>(), "DisplayTemplates/SomeTemplate", /*isMainPage*/ false))
+                .Setup(v => v.FindView(It.IsAny<ActionContext>(), "DisplayTemplates/Status", /*isMainPage*/ false))
                 .Returns(ViewEngineResult.Found("SomeView", view.Object));
-            var helper = DefaultTemplatesUtilities.GetHtmlHelper(model, viewEngine.Object);
+
+            var stringLocalizer = new Mock<IStringLocalizer>();
+            stringLocalizer
+                .Setup(s => s["Resx_Pass"])
+                .Returns<string>((key) =>
+                {
+                    return new LocalizedString(key, "pass from resx");
+                });
+            var stringLocalizerFactory = new Mock<IStringLocalizerFactory>();
+            stringLocalizerFactory
+                .Setup(s => s.Create(typeof(Status)))
+                .Returns(stringLocalizer.Object);
+
+            var helper = DefaultTemplatesUtilities.GetHtmlHelper(model, viewEngine.Object, stringLocalizerFactory.Object);
 
             // Act
             var displayResult = helper.DisplayFor(m => m.Status);
@@ -257,21 +270,20 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
         public void DisplayFor_EnumProperty_ResourceTypeLocalizedValue()
         {
             // Arrange
-            var model = new SomeModel
+            var model = new StatusModel
             {
-                SomeProperty = "ModelValue",
                 Status = Status.Fail
             };
             var view = new Mock<IView>();
             view.Setup(v => v.RenderAsync(It.IsAny<ViewContext>()))
-                .Callback((ViewContext v) => v.Writer.WriteAsync(v.ViewData.TemplateInfo.HtmlFieldPrefix))
+                .Callback((ViewContext v) => v.Writer.WriteAsync(v.ViewData.TemplateInfo.FormattedModelValue.ToString()))
                 .Returns(Task.FromResult(0));
             var viewEngine = new Mock<ICompositeViewEngine>(MockBehavior.Strict);
             viewEngine
                 .Setup(v => v.GetView(/*executingFilePath*/ null, It.IsAny<string>(), /*isMainPage*/ false))
                 .Returns(ViewEngineResult.NotFound(string.Empty, Enumerable.Empty<string>()));
             viewEngine
-                .Setup(v => v.FindView(It.IsAny<ActionContext>(), "DisplayTemplates/SomeTemplate", /*isMainPage*/ false))
+                .Setup(v => v.FindView(It.IsAny<ActionContext>(), "DisplayTemplates/Status", /*isMainPage*/ false))
                 .Returns(ViewEngineResult.Found("SomeView", view.Object));
             var helper = DefaultTemplatesUtilities.GetHtmlHelper(model, viewEngine.Object);
 
@@ -414,13 +426,16 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
         private class SomeModel
         {
             public string SomeProperty { get; set; }
+        }
 
+        private class StatusModel
+        {
             public Status Status { get; set; }
         }
 
-        private class StatusResource
+        public class StatusResource
         {
-            public static string Type_Fail = "failure from type";
+            public static string Type_Fail { get { return "failure from type"; } }
         }
 
         private enum Status : byte
