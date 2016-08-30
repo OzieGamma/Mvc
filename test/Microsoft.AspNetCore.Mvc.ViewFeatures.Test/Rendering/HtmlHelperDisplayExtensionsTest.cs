@@ -231,7 +231,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
             // Arrange
             var model = new StatusModel
             {
-                Status = Status.Pass
+                Status = Status.Created
             };
             var view = new Mock<IView>();
             view.Setup(v => v.RenderAsync(It.IsAny<ViewContext>()))
@@ -247,10 +247,10 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
 
             var stringLocalizer = new Mock<IStringLocalizer>();
             stringLocalizer
-                .Setup(s => s["Resx_Pass"])
+                .Setup(s => s["Resx_Created"])
                 .Returns<string>((key) =>
                 {
-                    return new LocalizedString(key, "pass from resx");
+                    return new LocalizedString(key, "created from resx");
                 });
             var stringLocalizerFactory = new Mock<IStringLocalizerFactory>();
             stringLocalizerFactory
@@ -263,7 +263,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
             var displayResult = helper.DisplayFor(m => m.Status);
 
             // Assert
-            Assert.Equal("pass from resx", HtmlContentUtilities.HtmlContentToString(displayResult));
+            Assert.Equal("created from resx", HtmlContentUtilities.HtmlContentToString(displayResult));
         }
 
         [Fact]
@@ -272,7 +272,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
             // Arrange
             var model = new StatusModel
             {
-                Status = Status.Fail
+                Status = Status.Faulted
             };
             var view = new Mock<IView>();
             view.Setup(v => v.RenderAsync(It.IsAny<ViewContext>()))
@@ -291,7 +291,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
             var displayResult = helper.DisplayFor(m => m.Status);
 
             // Assert
-            Assert.Equal("failure from type", HtmlContentUtilities.HtmlContentToString(displayResult));
+            Assert.Equal("faulted from type", HtmlContentUtilities.HtmlContentToString(displayResult));
         }
 
         [Fact]
@@ -435,16 +435,16 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
 
         public class StatusResource
         {
-            public static string Type_Fail { get { return "failure from type"; } }
+            public static string Type_Faulted { get { return "faulted from type"; } }
         }
 
         private enum Status : byte
         {
-            [Display(Name = "Resx_Pass")]
-            Pass,
-            [Display(Name = "Type_Fail", ResourceType = typeof(StatusResource))]
-            Fail,
-            Unknown
+            [Display(Name = "Resx_Created")]
+            Created,
+            [Display(Name = "Type_Faulted", ResourceType = typeof(StatusResource))]
+            Faulted,
+            Done
         }
     }
 }
