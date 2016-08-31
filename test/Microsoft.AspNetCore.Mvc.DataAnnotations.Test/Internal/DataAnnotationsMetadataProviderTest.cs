@@ -838,8 +838,8 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
 
             // Assert
             Assert.NotEqual(frenchEnumDisplay, englishEnumDisplay);
-            Assert.Equal("LOC_Two fr-FR", frenchEnumDisplay);
-            Assert.Equal("LOC_Two en-US", englishEnumDisplay);
+            Assert.Equal("Loc_Two_Name fr-FR", frenchEnumDisplay);
+            Assert.Equal("Loc_Two_Name en-US", englishEnumDisplay);
         }
 
         [Fact]

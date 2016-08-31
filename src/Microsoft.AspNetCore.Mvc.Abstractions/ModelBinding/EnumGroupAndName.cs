@@ -2,7 +2,10 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
 using Microsoft.Extensions.Internal;
+using Microsoft.Extensions.Localization;
 
 namespace Microsoft.AspNetCore.Mvc.ModelBinding
 {
@@ -11,7 +14,9 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
     /// </summary>
     public struct EnumGroupAndName
     {
-        private Func<string> _nameFunc;
+        private IStringLocalizer _stringLocalizer;
+        private FieldInfo _fieldInfo;
+        private string _name;
 
         /// <summary>
         /// Initializes a new instance of the EnumGroupAndName structure. Should not be used if localization is in use.
@@ -31,28 +36,37 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
             }
 
             Group = group;
-            _nameFunc = () => name;
+
+            _stringLocalizer = null;
+            _fieldInfo = null;
+            _name = name;
         }
 
         /// <summary>
         /// Initializes a new instance of the EnumGroupAndName structure.
         /// </summary>
         /// <param name="group">The group name.</param>
-        /// <param name="name">A function which returns the name. (Necessary for proper localization.)</param>
-        public EnumGroupAndName(string group, Func<string> name)
+        /// <param name="stringLocalizer">The <see cref="IStringLocalizer"/> to localize with.</param>
+        /// <param name="fieldInfo">The <see cref="FieldInfo"/> to use in localization.</param>
+        public EnumGroupAndName(
+            string group,
+            IStringLocalizer stringLocalizer,
+            FieldInfo fieldInfo)
         {
             if (group == null)
             {
                 throw new ArgumentNullException(nameof(group));
             }
 
-            if (name == null)
+            if (fieldInfo == null)
             {
-                throw new ArgumentNullException(nameof(name));
+                throw new ArgumentNullException(nameof(fieldInfo));
             }
 
             Group = group;
-            _nameFunc = name;
+            _stringLocalizer = stringLocalizer;
+            _fieldInfo = fieldInfo;
+            _name = null;
         }
 
         /// <summary>
@@ -67,7 +81,7 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
         {
             get
             {
-                return _nameFunc();
+                return GetDisplayName();
             }
         }
 
@@ -92,6 +106,30 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
             hashcode.Add(Name);
 
             return hashcode;
+        }
+
+        private string GetDisplayName()
+        {
+            if (_fieldInfo == null)
+            {
+                return _name;
+            }
+            else
+            {
+                var display = _fieldInfo.GetCustomAttribute<DisplayAttribute>(inherit: false);
+                if (display != null)
+                {
+                    // Note [Display(Name = "")] is allowed.
+                    var name = display.GetName();
+                    if (_stringLocalizer != null && !string.IsNullOrEmpty(name) && display.ResourceType == null)
+                    {
+                        name = _stringLocalizer[name];
+                    }
+                    return name ?? _fieldInfo.Name;
+                }
+
+                return _fieldInfo.Name;
+            }
         }
     }
 }
