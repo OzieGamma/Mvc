@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -527,15 +528,14 @@ namespace Microsoft.AspNetCore.Mvc.ViewFeatures
                 var value = (modelExplorer.Model as Enum).ToString("d");
 
                 var enumGrouped = modelExplorer.Metadata.EnumGroupedDisplayNamesAndValues;
-                if (enumGrouped != null &&
-                    enumGrouped.Count() > 0)
+                Debug.Assert(enumGrouped != null);
+                foreach (var kvp in enumGrouped)
                 {
-                    foreach (var kvp in enumGrouped)
+                    if (kvp.Value == value)
                     {
-                        if (kvp.Value == value)
-                        {
-                            modelExplorer = modelExplorer.GetExplorerForModel(kvp.Key.Name);
-                        }
+                        // Creates a ModelExplorer with the same Metadata except that the Model is a string instead of an Enum
+                        modelExplorer = modelExplorer.GetExplorerForModel(kvp.Key.Name);
+                        break;
                     }
                 }
             }

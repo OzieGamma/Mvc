@@ -250,7 +250,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
                 .Setup(s => s["Resx_Created"])
                 .Returns<string>((key) =>
                 {
-                    return new LocalizedString(key, "created from resx");
+                    return new LocalizedString(key, "created from IStringLocalizer");
                 });
             var stringLocalizerFactory = new Mock<IStringLocalizerFactory>();
             stringLocalizerFactory
@@ -263,7 +263,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
             var displayResult = helper.DisplayFor(m => m.Status);
 
             // Assert
-            Assert.Equal("created from resx", HtmlContentUtilities.HtmlContentToString(displayResult));
+            Assert.Equal("created from IStringLocalizer", HtmlContentUtilities.HtmlContentToString(displayResult));
         }
 
         [Fact]
@@ -435,7 +435,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
 
         public class StatusResource
         {
-            public static string Type_Faulted { get { return "faulted from type"; } }
+            public static string Type_Faulted { get { return "Faulted from ResourceType"; } }
         }
 
         private enum Status : byte

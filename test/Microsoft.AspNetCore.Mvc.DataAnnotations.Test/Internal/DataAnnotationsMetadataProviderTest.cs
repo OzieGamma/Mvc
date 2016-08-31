@@ -602,9 +602,19 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
         }
 
         [Fact]
-        public void CreateDisplayMetadata_DisplayName_Localized()
+        public void CreateDisplayMetadata_DisplayName_LocalizeWithStringLocalizer()
         {
             // Arrange
+            var expectedKeyValuePairs = new List<KeyValuePair<EnumGroupAndName, string>>
+            {
+                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName("Zero", string.Empty), "0"),
+                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName(string.Empty, nameof(EnumWithDisplayNames.One)), "1"),
+                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName(string.Empty, "dos value"), "2"),
+                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName(string.Empty, "tres value"), "3"),
+                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName(string.Empty, "name from resources"), "-2"),
+                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName("Negatives", "menos uno value"), "-1"),
+            };
+
             var type = typeof(EnumWithDisplayNames);
             var attributes = new object[0];
 
@@ -627,21 +637,13 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
             provider.CreateDisplayMetadata(context);
 
             // Assert
-            var expectedKeyValuePairs = new List<KeyValuePair<EnumGroupAndName, string>>
-            {
-                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName("Zero", string.Empty), "0"),
-                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName(string.Empty, nameof(EnumWithDisplayNames.One)), "1"),
-                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName(string.Empty, "dos value"), "2"),
-                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName(string.Empty, "tres value"), "3"),
-                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName(string.Empty, "name from resources"), "-2"),
-                new KeyValuePair<EnumGroupAndName, string>(new EnumGroupAndName("Negatives", "menos uno value"), "-1"),
-            };
-
             Assert.Equal(
-                expectedKeyValuePairs?.OrderBy(item => item.Key.Group, StringComparer.Ordinal)
-                .ThenBy(item => item.Key.Name, StringComparer.Ordinal),
-                context.DisplayMetadata.EnumGroupedDisplayNamesAndValues?.OrderBy(item => item.Key.Group, StringComparer.Ordinal)
-                .ThenBy(item => item.Key.Name, StringComparer.Ordinal));
+                expectedKeyValuePairs
+                    .OrderBy(item => item.Key.Group, StringComparer.Ordinal)
+                    .ThenBy(item => item.Key.Name, StringComparer.Ordinal),
+                context.DisplayMetadata.EnumGroupedDisplayNamesAndValues
+                    .OrderBy(item => item.Key.Group, StringComparer.Ordinal)
+                    .ThenBy(item => item.Key.Name, StringComparer.Ordinal));
         }
 
         // Type -> expected EnumDisplayNamesAndValues
@@ -782,116 +784,94 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
                 .ThenBy(item => item.Key.Name, StringComparer.Ordinal));
         }
 
-        private DataAnnotationsMetadataProvider CreateLocalizingProvider()
-        {
-            var stringLocalizer = new Mock<IStringLocalizer>(MockBehavior.Strict);
-            stringLocalizer
-                .Setup(loc => loc[It.IsAny<string>()])
-                .Returns<string>((k =>
-                {
-                    if (k.Contains("Loc_Two"))
-                    {
-                        return new LocalizedString(k, $"{k} {CultureInfo.CurrentCulture}");
-                    }
-                    else
-                    {
-                        return new LocalizedString(k, k, resourceNotFound: true);
-                    }
-                }));
-
-            var stringLocalizerFactory = new Mock<IStringLocalizerFactory>(MockBehavior.Strict);
-            stringLocalizerFactory
-                .Setup(factory => factory.Create(typeof(EnumWithLocalizedDisplayNames)))
-                .Returns(stringLocalizer.Object);
-
-            return new DataAnnotationsMetadataProvider(stringLocalizerFactory: stringLocalizerFactory.Object);
-        }
-
         [Fact]
         public void CreateDisplayMetadata_EnumGroupedDisplayNamesAndValues_IStringLocalizer()
         {
             // Arrange
-            var provider = CreateLocalizingProvider();
+            var provider = CreateIStringLocalizerProvider();
 
             var key = ModelMetadataIdentity.ForType(typeof(EnumWithLocalizedDisplayNames));
             var attributes = new object[0];
 
-            // Act
             var context = new DisplayMetadataProviderContext(key, new ModelAttributes(attributes));
             provider.CreateDisplayMetadata(context);
 
-            string frenchEnumDisplay;
+            // Act & Assert
             using (new CultureReplacer("fr-FR", "fr-FR"))
             {
-                frenchEnumDisplay = context.DisplayMetadata.EnumGroupedDisplayNamesAndValues
-                    .Where(kvp => kvp.Value == "2")
-                    .First().Key.Name;
+                Assert.All(
+                    context.DisplayMetadata.EnumGroupedDisplayNamesAndValues
+                        .Where(kvp => kvp.Value == "2"),
+                    kvp => Assert.Equal("Loc_Two_Name fr-FR", kvp.Key.Name));
             }
 
-            string englishEnumDisplay;
             using (new CultureReplacer("en-US", "en-US"))
             {
-                englishEnumDisplay = context.DisplayMetadata.EnumGroupedDisplayNamesAndValues
-                    .Where(kvp => kvp.Value == "2")
-                    .First().Key.Name;
+                Assert.All(
+                    context.DisplayMetadata.EnumGroupedDisplayNamesAndValues
+                        .Where(kvp => kvp.Value == "2"),
+                    kvp => Assert.Equal("Loc_Two_Name en-US", kvp.Key.Name));
             }
-
-            // Assert
-            Assert.NotEqual(frenchEnumDisplay, englishEnumDisplay);
-            Assert.Equal("Loc_Two_Name fr-FR", frenchEnumDisplay);
-            Assert.Equal("Loc_Two_Name en-US", englishEnumDisplay);
         }
 
         [Fact]
-        public void CreateDisplayMetadata_EnumGroupedDisplayNamesAndValues_NameLocalizes()
+        public void CreateDisplayMetadata_EnumGroupedDisplayNamesAndValues_NameWithOnlyDisplayAttribute()
         {
-            // Arrange
-            var provider = CreateLocalizingProvider();
+            // Arrange & Act
+            var enumNameAndGroup = GetLocalizedEnumGrouopedDisplayNamesAndValues();
 
-            var key = ModelMetadataIdentity.ForType(typeof(EnumWithLocalizedDisplayNames));
-            var attributes = new object[0];
+            var enumOne = enumNameAndGroup.First(e => e.Value == "1");
 
-            // Act
-            var context = new DisplayMetadataProviderContext(key, new ModelAttributes(attributes));
-            provider.CreateDisplayMetadata(context);
-
-            var enumNameAndGroup = context.DisplayMetadata.EnumGroupedDisplayNamesAndValues;
-
-            var groupOne = enumNameAndGroup.Where(e => e.Value == "1").First();
-            var groupTwo = enumNameAndGroup.Where(e => e.Value == "2").First();
-            var groupThree = enumNameAndGroup.Where(e => e.Value == "3").First();
-
-            string enNameOne;
-            string enNameTwo;
-            string enNameThree;
+            // Assert
             using (new CultureReplacer("en-US", "en-US"))
             {
-                enNameOne = groupOne.Key.Name;
-                enNameTwo = groupTwo.Key.Name;
-                enNameThree = groupThree.Key.Name;
+                Assert.Equal("Attr_One_Name", enumOne.Key.Name);
             }
 
-            string frNameOne;
-            string frNameTwo;
-            string frNameThree;
             using (new CultureReplacer("fr-FR", "fr-FR"))
             {
-                frNameOne = groupOne.Key.Name;
-                frNameTwo = groupTwo.Key.Name;
-                frNameThree = groupThree.Key.Name;
+                Assert.Equal("Attr_One_Name", enumOne.Key.Name);
+            }
+        }
+
+        [Fact]
+        public void CreateDisplayMetadata_EnumGroupedDisplayNamesAndValues_NameWithIStringLocalizer()
+        {
+            // Arrange & Act
+            var enumNameAndGroup = GetLocalizedEnumGrouopedDisplayNamesAndValues();
+
+            var groupTwo = enumNameAndGroup.First(e => e.Value == "2");
+
+            // Assert
+            using (new CultureReplacer("en-US", "en-US"))
+            {
+                Assert.Equal("Loc_Two_Name en-US", groupTwo.Key.Name);
             }
 
-            // Display only
-            Assert.Equal("Attr_One_Name", enNameOne);
-            Assert.Equal("Attr_One_Name", frNameOne);
+            using (new CultureReplacer("fr-FR", "fr-FR"))
+            {
+                Assert.Equal("Loc_Two_Name fr-FR", groupTwo.Key.Name);
+            }
+        }
 
-            // IStringLocalizer
-            Assert.Equal("Loc_Two_Name en-US", enNameTwo);
-            Assert.Equal("Loc_Two_Name fr-FR", frNameTwo);
+        [Fact]
+        public void CreateDisplayMetadata_EnumGroupedDisplayNamesAndValues_NameWithResourceType()
+        {
+            // Arrange & Act
+            var enumNameAndGroup = GetLocalizedEnumGrouopedDisplayNamesAndValues();
 
-            //ResourceType
-            Assert.Equal("type three name en-US", enNameThree);
-            Assert.Equal("type three name fr-FR", frNameThree);
+            var groupThree = enumNameAndGroup.First(e => e.Value == "3");
+
+            // Assert
+            using (new CultureReplacer("en-US", "en-US"))
+            {
+                Assert.Equal("type three name en-US", groupThree.Key.Name);
+            }
+
+            using (new CultureReplacer("fr-FR", "fr-FR"))
+            {
+                Assert.Equal("type three name en-US", groupThree.Key.Name);
+            }
         }
 
         [Fact]
@@ -1013,6 +993,44 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
             // Assert
             var validatorMetadata = Assert.Single(context.ValidationMetadata.ValidatorMetadata);
             Assert.Same(attribute, validatorMetadata);
+        }
+
+        private IEnumerable<KeyValuePair<EnumGroupAndName, string>> GetLocalizedEnumGrouopedDisplayNamesAndValues()
+        {
+            var provider = CreateIStringLocalizerProvider();
+
+            var key = ModelMetadataIdentity.ForType(typeof(EnumWithLocalizedDisplayNames));
+            var attributes = new object[0];
+
+            var context = new DisplayMetadataProviderContext(key, new ModelAttributes(attributes));
+            provider.CreateDisplayMetadata(context);
+
+            return context.DisplayMetadata.EnumGroupedDisplayNamesAndValues;
+        }
+
+        private DataAnnotationsMetadataProvider CreateIStringLocalizerProvider()
+        {
+            var stringLocalizer = new Mock<IStringLocalizer>(MockBehavior.Strict);
+            stringLocalizer
+                .Setup(loc => loc[It.IsAny<string>()])
+                .Returns<string>((k =>
+                {
+                    if (k.Contains("Loc_Two") || k.Contains("Type_Three"))
+                    {
+                        return new LocalizedString(k, $"{k} {CultureInfo.CurrentCulture}");
+                    }
+                    else
+                    {
+                        return new LocalizedString(k, k, resourceNotFound: true);
+                    }
+                }));
+
+            var stringLocalizerFactory = new Mock<IStringLocalizerFactory>(MockBehavior.Strict);
+            stringLocalizerFactory
+                .Setup(factory => factory.Create(typeof(EnumWithLocalizedDisplayNames)))
+                .Returns(stringLocalizer.Object);
+
+            return new DataAnnotationsMetadataProvider(stringLocalizerFactory: stringLocalizerFactory.Object);
         }
 
         private class TestValidationAttribute : ValidationAttribute, IClientModelValidator

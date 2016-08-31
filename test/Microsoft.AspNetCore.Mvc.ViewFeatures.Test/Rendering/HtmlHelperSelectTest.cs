@@ -1321,7 +1321,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
             var result = htmlHelper.GetEnumSelectList<EnumWithDisplayNames>();
 
             // Assert
-            Assert.Equal("cero en-US", result.Where(s => s.Value == "0").First().Text);
+            Assert.Equal("cero en-US", result.First(s => s.Value == "0").Text);
         }
 
         [Fact]

@@ -14,12 +14,14 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
     /// </summary>
     public struct EnumGroupAndName
     {
+        private DisplayAttribute _displayAttribute;
         private IStringLocalizer _stringLocalizer;
         private FieldInfo _fieldInfo;
         private string _name;
 
         /// <summary>
-        /// Initializes a new instance of the EnumGroupAndName structure. Should not be used if localization is in use.
+        /// Initializes a new instance of the EnumGroupAndName structure. This constructor should not be used in any 
+        /// site where users may select a locale.
         /// </summary>
         /// <param name="group">The group name.</param>
         /// <param name="name">The name.</param>
@@ -39,6 +41,7 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
 
             _stringLocalizer = null;
             _fieldInfo = null;
+            _displayAttribute = null;
             _name = name;
         }
 
@@ -47,7 +50,7 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
         /// </summary>
         /// <param name="group">The group name.</param>
         /// <param name="stringLocalizer">The <see cref="IStringLocalizer"/> to localize with.</param>
-        /// <param name="fieldInfo">The <see cref="FieldInfo"/> to use in localization.</param>
+        /// <param name="fieldInfo">The <see cref="FieldInfo"/> to use for display.</param>
         public EnumGroupAndName(
             string group,
             IStringLocalizer stringLocalizer,
@@ -67,6 +70,7 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
             _stringLocalizer = stringLocalizer;
             _fieldInfo = fieldInfo;
             _name = null;
+            _displayAttribute = fieldInfo.GetCustomAttribute<DisplayAttribute>(inherit: false);
         }
 
         /// <summary>
@@ -85,7 +89,7 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
             }
         }
 
-        // Equals and GetHashCode must be overloaded to accomidate the _nameFunc
+        // Equals and GetHashCode must be overloaded to accommodate the _nameFunc
         public override bool Equals(object obj)
         {
             if (!(obj is EnumGroupAndName))
@@ -116,15 +120,15 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
             }
             else
             {
-                var display = _fieldInfo.GetCustomAttribute<DisplayAttribute>(inherit: false);
-                if (display != null)
+                if (_displayAttribute != null)
                 {
                     // Note [Display(Name = "")] is allowed.
-                    var name = display.GetName();
-                    if (_stringLocalizer != null && !string.IsNullOrEmpty(name) && display.ResourceType == null)
+                    var name = _displayAttribute.GetName();
+                    if (_stringLocalizer != null && !string.IsNullOrEmpty(name) && _displayAttribute.ResourceType == null)
                     {
                         name = _stringLocalizer[name];
                     }
+
                     return name ?? _fieldInfo.Name;
                 }
 
