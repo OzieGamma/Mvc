@@ -1301,7 +1301,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
         }
 
         [Fact]
-        public void GetEnumSelectListTEnum_LocalizedEnum()
+        public void GetEnumSelectListTEnum_DisplayAttributeUsesIStringLocalizer()
         {
             // Arrange
             var stringLocalizer = new Mock<IStringLocalizer>();
@@ -1321,7 +1321,8 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
             var result = htmlHelper.GetEnumSelectList<EnumWithDisplayNames>();
 
             // Assert
-            Assert.Equal("cero en-US", result.First(s => s.Value == "0").Text);
+            var zeroSelect = Assert.Single(result, s => s.Value.Equals("0", StringComparison.Ordinal));
+            Assert.Equal("cero en-US", zeroSelect.Text);
         }
 
         [Fact]

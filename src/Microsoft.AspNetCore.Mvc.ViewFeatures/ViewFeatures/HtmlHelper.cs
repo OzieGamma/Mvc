@@ -523,10 +523,10 @@ namespace Microsoft.AspNetCore.Mvc.ViewFeatures
             string templateName,
             object additionalViewData)
         {
-            if (modelExplorer.Metadata.IsEnum && modelExplorer.Model != null)
+            var modelEnum = modelExplorer.Model as Enum;
+            if (modelExplorer.Metadata.IsEnum && modelExplorer.Model != null && modelEnum != null)
             {
-                var value = (modelExplorer.Model as Enum).ToString("d");
-
+                var value = modelEnum.ToString("d");
                 var enumGrouped = modelExplorer.Metadata.EnumGroupedDisplayNamesAndValues;
                 Debug.Assert(enumGrouped != null);
                 foreach (var kvp in enumGrouped)

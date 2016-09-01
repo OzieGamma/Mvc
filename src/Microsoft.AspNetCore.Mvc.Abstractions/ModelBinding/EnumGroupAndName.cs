@@ -16,7 +16,6 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
     {
         private DisplayAttribute _displayAttribute;
         private IStringLocalizer _stringLocalizer;
-        private FieldInfo _fieldInfo;
         private string _name;
 
         /// <summary>
@@ -38,9 +37,7 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
             }
 
             Group = group;
-
             _stringLocalizer = null;
-            _fieldInfo = null;
             _displayAttribute = null;
             _name = name;
         }
@@ -68,8 +65,7 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
 
             Group = group;
             _stringLocalizer = stringLocalizer;
-            _fieldInfo = fieldInfo;
-            _name = null;
+            _name = fieldInfo.Name;
             _displayAttribute = fieldInfo.GetCustomAttribute<DisplayAttribute>(inherit: false);
         }
 
@@ -99,41 +95,35 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
 
             var second = (EnumGroupAndName)obj;
 
-            return string.Equals(Group, second.Group) && string.Equals(Name, second.Name);
+            return string.Equals(Group, second.Group, StringComparison.Ordinal) && string.Equals(Name, second.Name, StringComparison.Ordinal);
         }
 
         public override int GetHashCode()
         {
             var hashcode = HashCodeCombiner.Start();
 
-            hashcode.Add(Group);
-            hashcode.Add(Name);
+            hashcode.Add(_displayAttribute);
+            hashcode.Add(_stringLocalizer);
+            hashcode.Add(_name);
 
             return hashcode;
         }
 
         private string GetDisplayName()
         {
-            if (_fieldInfo == null)
+            if (_displayAttribute != null)
             {
-                return _name;
-            }
-            else
-            {
-                if (_displayAttribute != null)
+                // Note [Display(Name = "")] is allowed but we will not attempt to localize the empty name.
+                var name = _displayAttribute.GetName();
+                if (_stringLocalizer != null && !string.IsNullOrEmpty(name) && _displayAttribute.ResourceType == null)
                 {
-                    // Note [Display(Name = "")] is allowed.
-                    var name = _displayAttribute.GetName();
-                    if (_stringLocalizer != null && !string.IsNullOrEmpty(name) && _displayAttribute.ResourceType == null)
-                    {
-                        name = _stringLocalizer[name];
-                    }
-
-                    return name ?? _fieldInfo.Name;
+                    name = _stringLocalizer[name];
                 }
 
-                return _fieldInfo.Name;
+                return name ?? _name;
             }
+
+            return _name;
         }
     }
 }

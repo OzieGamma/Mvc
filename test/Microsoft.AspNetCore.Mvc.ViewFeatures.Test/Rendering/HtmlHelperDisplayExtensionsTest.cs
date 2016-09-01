@@ -245,9 +245,9 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
                 .Setup(v => v.FindView(It.IsAny<ActionContext>(), "DisplayTemplates/Status", /*isMainPage*/ false))
                 .Returns(ViewEngineResult.Found("SomeView", view.Object));
 
-            var stringLocalizer = new Mock<IStringLocalizer>();
+            var stringLocalizer = new Mock<IStringLocalizer>(MockBehavior.Strict);
             stringLocalizer
-                .Setup(s => s["Resx_Created"])
+                .Setup(s => s["CreatedKey"])
                 .Returns<string>((key) =>
                 {
                     return new LocalizedString(key, "created from IStringLocalizer");
@@ -291,7 +291,7 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
             var displayResult = helper.DisplayFor(m => m.Status);
 
             // Assert
-            Assert.Equal("faulted from type", HtmlContentUtilities.HtmlContentToString(displayResult));
+            Assert.Equal("Faulted from ResourceType", HtmlContentUtilities.HtmlContentToString(displayResult));
         }
 
         [Fact]
@@ -435,14 +435,14 @@ namespace Microsoft.AspNetCore.Mvc.Rendering
 
         public class StatusResource
         {
-            public static string Type_Faulted { get { return "Faulted from ResourceType"; } }
+            public static string FaultedKey { get { return "Faulted from ResourceType"; } }
         }
 
         private enum Status : byte
         {
-            [Display(Name = "Resx_Created")]
+            [Display(Name = "CreatedKey")]
             Created,
-            [Display(Name = "Type_Faulted", ResourceType = typeof(StatusResource))]
+            [Display(Name = "FaultedKey", ResourceType = typeof(StatusResource))]
             Faulted,
             Done
         }

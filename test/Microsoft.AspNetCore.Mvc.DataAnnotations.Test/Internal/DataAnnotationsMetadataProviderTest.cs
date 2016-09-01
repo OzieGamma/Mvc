@@ -637,13 +637,7 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
             provider.CreateDisplayMetadata(context);
 
             // Assert
-            Assert.Equal(
-                expectedKeyValuePairs
-                    .OrderBy(item => item.Key.Group, StringComparer.Ordinal)
-                    .ThenBy(item => item.Key.Name, StringComparer.Ordinal),
-                context.DisplayMetadata.EnumGroupedDisplayNamesAndValues
-                    .OrderBy(item => item.Key.Group, StringComparer.Ordinal)
-                    .ThenBy(item => item.Key.Name, StringComparer.Ordinal));
+            Assert.Equal(expectedKeyValuePairs, context.DisplayMetadata.EnumGroupedDisplayNamesAndValues);
         }
 
         // Type -> expected EnumDisplayNamesAndValues
@@ -785,64 +779,14 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
         }
 
         [Fact]
-        public void CreateDisplayMetadata_EnumGroupedDisplayNamesAndValues_IStringLocalizer()
-        {
-            // Arrange
-            var provider = CreateIStringLocalizerProvider();
-
-            var key = ModelMetadataIdentity.ForType(typeof(EnumWithLocalizedDisplayNames));
-            var attributes = new object[0];
-
-            var context = new DisplayMetadataProviderContext(key, new ModelAttributes(attributes));
-            provider.CreateDisplayMetadata(context);
-
-            // Act & Assert
-            using (new CultureReplacer("fr-FR", "fr-FR"))
-            {
-                Assert.All(
-                    context.DisplayMetadata.EnumGroupedDisplayNamesAndValues
-                        .Where(kvp => kvp.Value == "2"),
-                    kvp => Assert.Equal("Loc_Two_Name fr-FR", kvp.Key.Name));
-            }
-
-            using (new CultureReplacer("en-US", "en-US"))
-            {
-                Assert.All(
-                    context.DisplayMetadata.EnumGroupedDisplayNamesAndValues
-                        .Where(kvp => kvp.Value == "2"),
-                    kvp => Assert.Equal("Loc_Two_Name en-US", kvp.Key.Name));
-            }
-        }
-
-        [Fact]
-        public void CreateDisplayMetadata_EnumGroupedDisplayNamesAndValues_NameWithOnlyDisplayAttribute()
-        {
-            // Arrange & Act
-            var enumNameAndGroup = GetLocalizedEnumGrouopedDisplayNamesAndValues();
-
-            var enumOne = enumNameAndGroup.First(e => e.Value == "1");
-
-            // Assert
-            using (new CultureReplacer("en-US", "en-US"))
-            {
-                Assert.Equal("Attr_One_Name", enumOne.Key.Name);
-            }
-
-            using (new CultureReplacer("fr-FR", "fr-FR"))
-            {
-                Assert.Equal("Attr_One_Name", enumOne.Key.Name);
-            }
-        }
-
-        [Fact]
         public void CreateDisplayMetadata_EnumGroupedDisplayNamesAndValues_NameWithIStringLocalizer()
         {
             // Arrange & Act
-            var enumNameAndGroup = GetLocalizedEnumGrouopedDisplayNamesAndValues();
-
-            var groupTwo = enumNameAndGroup.First(e => e.Value == "2");
+            var enumNameAndGroup = GetLocalizedEnumGroupedDisplayNamesAndValues();
 
             // Assert
+            var groupTwo = Assert.Single(enumNameAndGroup, e => e.Value.Equals("2", StringComparison.Ordinal));
+
             using (new CultureReplacer("en-US", "en-US"))
             {
                 Assert.Equal("Loc_Two_Name en-US", groupTwo.Key.Name);
@@ -858,9 +802,9 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
         public void CreateDisplayMetadata_EnumGroupedDisplayNamesAndValues_NameWithResourceType()
         {
             // Arrange & Act
-            var enumNameAndGroup = GetLocalizedEnumGrouopedDisplayNamesAndValues();
+            var enumNameAndGroup = GetLocalizedEnumGroupedDisplayNamesAndValues();
 
-            var groupThree = enumNameAndGroup.First(e => e.Value == "3");
+            var groupThree = Assert.Single(enumNameAndGroup, e => e.Value.Equals("3", StringComparison.Ordinal));
 
             // Assert
             using (new CultureReplacer("en-US", "en-US"))
@@ -870,7 +814,7 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
 
             using (new CultureReplacer("fr-FR", "fr-FR"))
             {
-                Assert.Equal("type three name en-US", groupThree.Key.Name);
+                Assert.Equal("type three name fr-FR", groupThree.Key.Name);
             }
         }
 
@@ -995,7 +939,7 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
             Assert.Same(attribute, validatorMetadata);
         }
 
-        private IEnumerable<KeyValuePair<EnumGroupAndName, string>> GetLocalizedEnumGrouopedDisplayNamesAndValues()
+        private IEnumerable<KeyValuePair<EnumGroupAndName, string>> GetLocalizedEnumGroupedDisplayNamesAndValues()
         {
             var provider = CreateIStringLocalizerProvider();
 
@@ -1015,14 +959,7 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
                 .Setup(loc => loc[It.IsAny<string>()])
                 .Returns<string>((k =>
                 {
-                    if (k.Contains("Loc_Two") || k.Contains("Type_Three"))
-                    {
-                        return new LocalizedString(k, $"{k} {CultureInfo.CurrentCulture}");
-                    }
-                    else
-                    {
-                        return new LocalizedString(k, k, resourceNotFound: true);
-                    }
+                    return new LocalizedString(k, $"{k} {CultureInfo.CurrentCulture}");
                 }));
 
             var stringLocalizerFactory = new Mock<IStringLocalizerFactory>(MockBehavior.Strict);
@@ -1065,14 +1002,10 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
 
         private enum EnumWithLocalizedDisplayNames
         {
-            [Display(Name = "Attr_One_Name", Description = "Attr_One_Description", Prompt = "Attr_One_Prompt")]
-            One = 1,
-            [Display(Name = "Loc_Two_Name", Description = "Loc_Two_Description", Prompt = "Loc_Two_Prompt")]
+            [Display(Name = "Loc_Two_Name")]
             Two = 2,
             [Display(
                 Name = "Type_Three_Name",
-                Description = "Type_Three_Description",
-                Prompt = "Type_Three_Prompt",
                 ResourceType = typeof(TestResources))]
             Three = 3
         }
