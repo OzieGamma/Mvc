@@ -20,7 +20,7 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
 
         /// <summary>
         /// Initializes a new instance of the EnumGroupAndName structure. This constructor should not be used in any 
-        /// site where users may select a locale.
+        /// site where localization is important.
         /// </summary>
         /// <param name="group">The group name.</param>
         /// <param name="name">The name.</param>
@@ -95,16 +95,20 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
 
             var second = (EnumGroupAndName)obj;
 
-            return string.Equals(Group, second.Group, StringComparison.Ordinal) && string.Equals(Name, second.Name, StringComparison.Ordinal);
+            return string.Equals(Group, second.Group, StringComparison.Ordinal)
+                && string.Equals(_name, second._name, StringComparison.Ordinal)
+                && _displayAttribute == second._displayAttribute
+                && _stringLocalizer == second._stringLocalizer;
         }
 
         public override int GetHashCode()
         {
             var hashcode = HashCodeCombiner.Start();
 
+            hashcode.Add(Group);
+            hashcode.Add(_name);
             hashcode.Add(_displayAttribute);
             hashcode.Add(_stringLocalizer);
-            hashcode.Add(_name);
 
             return hashcode;
         }

@@ -779,46 +779,6 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
         }
 
         [Fact]
-        public void CreateDisplayMetadata_EnumGroupedDisplayNamesAndValues_NameWithIStringLocalizer()
-        {
-            // Arrange & Act
-            var enumNameAndGroup = GetLocalizedEnumGroupedDisplayNamesAndValues();
-
-            // Assert
-            var groupTwo = Assert.Single(enumNameAndGroup, e => e.Value.Equals("2", StringComparison.Ordinal));
-
-            using (new CultureReplacer("en-US", "en-US"))
-            {
-                Assert.Equal("Loc_Two_Name en-US", groupTwo.Key.Name);
-            }
-
-            using (new CultureReplacer("fr-FR", "fr-FR"))
-            {
-                Assert.Equal("Loc_Two_Name fr-FR", groupTwo.Key.Name);
-            }
-        }
-
-        [Fact]
-        public void CreateDisplayMetadata_EnumGroupedDisplayNamesAndValues_NameWithResourceType()
-        {
-            // Arrange & Act
-            var enumNameAndGroup = GetLocalizedEnumGroupedDisplayNamesAndValues();
-
-            var groupThree = Assert.Single(enumNameAndGroup, e => e.Value.Equals("3", StringComparison.Ordinal));
-
-            // Assert
-            using (new CultureReplacer("en-US", "en-US"))
-            {
-                Assert.Equal("type three name en-US", groupThree.Key.Name);
-            }
-
-            using (new CultureReplacer("fr-FR", "fr-FR"))
-            {
-                Assert.Equal("type three name fr-FR", groupThree.Key.Name);
-            }
-        }
-
-        [Fact]
         public void CreateValidationMetadata_RequiredAttribute_SetsIsRequiredToTrue()
         {
             // Arrange
@@ -939,37 +899,6 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
             Assert.Same(attribute, validatorMetadata);
         }
 
-        private IEnumerable<KeyValuePair<EnumGroupAndName, string>> GetLocalizedEnumGroupedDisplayNamesAndValues()
-        {
-            var provider = CreateIStringLocalizerProvider();
-
-            var key = ModelMetadataIdentity.ForType(typeof(EnumWithLocalizedDisplayNames));
-            var attributes = new object[0];
-
-            var context = new DisplayMetadataProviderContext(key, new ModelAttributes(attributes));
-            provider.CreateDisplayMetadata(context);
-
-            return context.DisplayMetadata.EnumGroupedDisplayNamesAndValues;
-        }
-
-        private DataAnnotationsMetadataProvider CreateIStringLocalizerProvider()
-        {
-            var stringLocalizer = new Mock<IStringLocalizer>(MockBehavior.Strict);
-            stringLocalizer
-                .Setup(loc => loc[It.IsAny<string>()])
-                .Returns<string>((k =>
-                {
-                    return new LocalizedString(k, $"{k} {CultureInfo.CurrentCulture}");
-                }));
-
-            var stringLocalizerFactory = new Mock<IStringLocalizerFactory>(MockBehavior.Strict);
-            stringLocalizerFactory
-                .Setup(factory => factory.Create(typeof(EnumWithLocalizedDisplayNames)))
-                .Returns(stringLocalizer.Object);
-
-            return new DataAnnotationsMetadataProvider(stringLocalizerFactory: stringLocalizerFactory.Object);
-        }
-
         private class TestValidationAttribute : ValidationAttribute, IClientModelValidator
         {
             public void AddValidation(ClientModelValidationContext context)
@@ -998,16 +927,6 @@ namespace Microsoft.AspNetCore.Mvc.DataAnnotations.Internal
 
         private enum EmptyEnum
         {
-        }
-
-        private enum EnumWithLocalizedDisplayNames
-        {
-            [Display(Name = "Loc_Two_Name")]
-            Two = 2,
-            [Display(
-                Name = "Type_Three_Name",
-                ResourceType = typeof(TestResources))]
-            Three = 3
         }
 
         private enum EnumWithDisplayNames

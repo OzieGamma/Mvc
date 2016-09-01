@@ -524,7 +524,7 @@ namespace Microsoft.AspNetCore.Mvc.ViewFeatures
             object additionalViewData)
         {
             var modelEnum = modelExplorer.Model as Enum;
-            if (modelExplorer.Metadata.IsEnum && modelExplorer.Model != null && modelEnum != null)
+            if (modelExplorer.Metadata.IsEnum && modelEnum != null)
             {
                 var value = modelEnum.ToString("d");
                 var enumGrouped = modelExplorer.Metadata.EnumGroupedDisplayNamesAndValues;

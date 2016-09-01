@@ -10,10 +10,6 @@ namespace Microsoft.AspNetCore.Mvc.ModelBinding
     // internal properties.
     public static class TestResources
     {
-        public static string Type_Three_Name => "type three name " + CultureInfo.CurrentCulture;
-        public static string Type_Three_Description => "type three description " + CultureInfo.CurrentCulture;
-        public static string Type_Three_Prompt => "type three prompt " + CultureInfo.CurrentCulture;
-
         public static string DisplayAttribute_Description => Resources.DisplayAttribute_Description;
 
         public static string DisplayAttribute_Name => Resources.DisplayAttribute_Name;
