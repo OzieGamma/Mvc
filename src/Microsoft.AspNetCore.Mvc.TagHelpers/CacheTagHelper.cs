@@ -2,6 +2,7 @@
 // Licensed under the Apache License, Version 2.0. See License.txt in the project root for license information.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.Encodings.Web;
@@ -174,29 +175,95 @@ namespace Microsoft.AspNetCore.Mvc.TagHelpers
         {
             var content = await output.GetChildContentAsync();
 
-            var stringBuilder = new StringBuilder();
-            using (var writer = new StringWriter(stringBuilder))
+            using (var writer = new StringCollectionTextWriter())
             {
                 content.WriteTo(writer, HtmlEncoder);
+                return new StringCollectionHtmlContent(writer.Entries);
             }
-
-            return new StringBuilderHtmlContent(stringBuilder);
         }
 
-        private class StringBuilderHtmlContent : IHtmlContent
+        private class StringCollectionTextWriter : TextWriter
         {
-            private readonly StringBuilder _builder;
+            private const int MaxCharToStringLength = 4096;
 
-            public StringBuilderHtmlContent(StringBuilder builder)
+            /// <inheritdoc />
+            public override Encoding Encoding { get; } = Null.Encoding;
+
+            public List<string> Entries { get; } = new List<string>();
+
+            public override void Write(char value)
             {
-                _builder = builder;
+                Entries.Add(value.ToString());
             }
+
+            public override void Write(char[] buffer, int index, int count)
+            {
+                if (buffer == null)
+                {
+                    throw new ArgumentNullException(nameof(buffer));
+                }
+
+                if (index < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(index));
+                }
+
+                if (count < 0 || (buffer.Length - index < count))
+                {
+                    throw new ArgumentOutOfRangeException(nameof(count));
+                }
+
+                while (count > 0)
+                {
+                    // Split large char arrays into 1KB strings.
+                    var currentCount = count;
+                    if (MaxCharToStringLength < currentCount)
+                    {
+                        currentCount = MaxCharToStringLength;
+                    }
+
+                    Entries.Add(new string(buffer, index, currentCount));
+                    index += currentCount;
+                    count -= currentCount;
+                }
+            }
+
+            public override void Write(string value)
+            {
+                if (string.IsNullOrEmpty(value))
+                {
+                    return;
+                }
+
+                Entries.Add(value);
+            }
+
+            public override void WriteLine()
+            {
+                Entries.Add(Environment.NewLine);
+            }
+
+            public override void WriteLine(string value)
+            {
+                Write(value);
+                WriteLine();
+            }
+        }
+
+        private class StringCollectionHtmlContent : IHtmlContent
+        {
+            public StringCollectionHtmlContent(List<string> entries)
+            {
+                Entries = entries;
+            }
+
+            public List<string> Entries { get; }
 
             public void WriteTo(TextWriter writer, HtmlEncoder encoder)
             {
-                for (var i = 0; i < _builder.Length; i++)
+                for (var i = 0; i < Entries.Count; i++)
                 {
-                    writer.Write(_builder[i]);
+                    writer.Write(Entries[i]);
                 }
             }
         }
